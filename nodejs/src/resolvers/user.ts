@@ -2,7 +2,9 @@ import { User } from "../entities/User";
 import { MyContext } from "../Types";
 import { Arg, Ctx, Field, Mutation, ObjectType, Resolver } from "type-graphql";
 import argon2 from "argon2";
-
+import jwt from "jsonwebtoken";
+import { config } from "dotenv";
+config();
 @ObjectType()
 class FieldError {
   @Field()
@@ -17,7 +19,7 @@ class UserResponse {
   errors?: FieldError[];
 
   @Field(() => User, { nullable: true })
-  user?: User;
+  user?: User | any;
 }
 
 @Resolver()
@@ -30,7 +32,15 @@ export class UserResolver {
   ): Promise<User | Boolean> {
     if (!!(username && password !== "")) {
       const hashedPassword = await argon2.hash(password);
-      const user = em.create(User, { username, password: hashedPassword });
+      const userJwt = jwt.sign({ username }, "password", {
+        noTimestamp: true,
+        expiresIn: "1y",
+      });
+      const user = em.create(User, {
+        username,
+        password: hashedPassword,
+        userJwt,
+      });
       await em.persistAndFlush(user);
       return user;
     }
@@ -41,21 +51,25 @@ export class UserResolver {
   async login(
     @Arg("username") username: string,
     @Arg("password") password: string,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     if (!!(username && password !== "")) {
-      const user = em.findOne(User, { username: username.toLowerCase() });
-      if (!user)
-        ({
+      const user = await em.findOne(User, { username: username.toLowerCase() });
+      if (!user) {
+        return {
           errors: [
             { field: "username", message: "that username doesn't exist" },
           ],
-        });
-      const validation = argon2.verify(password, password);
-      if (!validation)
-        ({
+        };
+      }
+      const validation = await argon2.verify(user.password, password);
+      if (!validation) {
+        return {
           errors: [{ field: "password", message: "incorrect password" }],
-        });
+        };
+      }
+      req.session.userId = user.id;
+
       return {
         user,
       };

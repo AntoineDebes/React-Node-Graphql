@@ -3,7 +3,6 @@ import { Options } from "@mikro-orm/core";
 import { __prod__ } from "./constants";
 import { Post } from "./entities/Post";
 import path from "path";
-console.log("process.env.DB_NAME", process.env.DB_NAME);
 import { config } from "dotenv";
 config();
 
