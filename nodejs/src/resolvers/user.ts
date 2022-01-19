@@ -1,14 +1,24 @@
+import { createTokens } from "../middleware/jwtCreate";
 import { User } from "../entities/User";
 import { MyContext } from "../Types";
-import { Arg, Ctx, Field, Mutation, ObjectType, Resolver } from "type-graphql";
+import {
+  Arg,
+  Ctx,
+  Field,
+  Mutation,
+  ObjectType,
+  Query,
+  Resolver,
+} from "type-graphql";
 import argon2 from "argon2";
-import jwt from "jsonwebtoken";
 import { config } from "dotenv";
+import { UsernamePasswordInput } from "../types/usrPassInp";
+import { jwtValidation } from "../middleware/jwtValidation";
 config();
 @ObjectType()
 class FieldError {
   @Field()
-  field?: string;
+  field?: "username" | "password";
   @Field()
   message?: string;
 }
@@ -24,35 +34,67 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User)
+  async me(@Ctx() { req, res, em }: MyContext) {
+    const user = await jwtValidation({ req, res, em });
+    if (user) {
+      console.log("user", user);
+
+      return user;
+    } else {
+      return {
+        errors: [{ field: "token", message: "Token didn't refresh" }],
+      };
+    }
+  }
+
   @Mutation(() => User)
   async register(
     @Arg("username") username: string,
     @Arg("password") password: string,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, res }: MyContext
   ): Promise<User | Boolean> {
     if (!!(username && password !== "")) {
       const hashedPassword = await argon2.hash(password);
-      const userJwt = jwt.sign({ username }, "password", {
-        noTimestamp: true,
-        expiresIn: "1y",
-      });
+
       const user = em.create(User, {
         username,
         password: hashedPassword,
-        userJwt,
+        count: 0,
       });
       await em.persistAndFlush(user);
-      return user;
+      const fetchedUser: any = await em.findOne(User, { username });
+      const { accessToken, refreshToken } = createTokens(fetchedUser);
+
+      fetchedUser.refreshToken = refreshToken;
+      fetchedUser.accessToken = accessToken;
+      await em.persistAndFlush(fetchedUser);
+      res.cookie("access-token", accessToken, {
+        signed: false,
+        maxAge: 99999,
+        httpOnly: false,
+        sameSite: "none",
+        secure: true,
+      });
+      res.cookie("refresh-token", refreshToken, {
+        signed: false,
+        maxAge: 99999,
+        httpOnly: false,
+        secure: true,
+        sameSite: "none",
+      });
+      return fetchedUser;
     }
     return false;
   }
 
   @Mutation(() => UserResponse)
   async login(
-    @Arg("username") username: string,
-    @Arg("password") password: string,
-    @Ctx() { em, req }: MyContext
+    @Arg("options") options: UsernamePasswordInput,
+    @Ctx() { em }: MyContext
   ): Promise<UserResponse> {
+    console.log("passed");
+    const { username, password } = options;
     if (!!(username && password !== "")) {
       const user = await em.findOne(User, { username: username.toLowerCase() });
       if (!user) {
@@ -68,16 +110,13 @@ export class UserResolver {
           errors: [{ field: "password", message: "incorrect password" }],
         };
       }
-      req.session.userId = user.id;
 
       return {
         user,
       };
     }
     return {
-      errors: [
-        { field: "username or password", message: "Please fill your data" },
-      ],
+      errors: [{ field: "username", message: "Please fill your data" }],
     };
   }
 }

@@ -8,6 +8,9 @@ interface ContextRequest extends Session {
 
 export type MyContext = {
   em: EntityManager<IDatabaseDriver<Connection>>;
-  req: Request & { session?: ContextRequest };
+  req: Request & {
+    session?: ContextRequest;
+    cookie?: any;
+  };
   res: Response;
 };

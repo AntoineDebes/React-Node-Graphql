@@ -12,6 +12,9 @@ export class User {
   @Property({ type: "date" })
   createdAt = new Date();
 
+  @Property({ default: 1 })
+  count!: number;
+
   @Field(() => String)
   @Property({ type: "date", onUpdate: () => new Date() })
   updatedAt = new Date();
@@ -21,8 +24,12 @@ export class User {
   username!: string;
 
   @Field()
-  @Property({ type: "text" })
-  userJwt!: string;
+  @Property({ type: "text", nullable: true })
+  accessToken!: string;
+
+  @Field()
+  @Property({ type: "text", nullable: true })
+  refreshToken!: string;
 
   @Property({ type: "text" })
   password!: string;
