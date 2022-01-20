@@ -99,35 +99,41 @@ export type UsernamePasswordInput = {
   username: Scalars['String'];
 };
 
+export type RegularUserFragment = { __typename?: 'User', id: number, username: string };
+
 export type RegisterMutationVariables = Exact<{
   username: Scalars['String'];
   password: Scalars['String'];
 }>;
 
 
-export type RegisterMutation = { __typename?: 'Mutation', register: { __typename?: 'User', username: string, id: number } };
+export type RegisterMutation = { __typename?: 'Mutation', register: { __typename?: 'User', id: number, username: string } };
 
 export type LoginMutationVariables = Exact<{
   options: UsernamePasswordInput;
 }>;
 
 
-export type LoginMutation = { __typename?: 'Mutation', login: { __typename?: 'UserResponse', errors?: Array<{ __typename?: 'FieldError', field: string, message: string }> | null | undefined, user?: { __typename?: 'User', username: string, id: number } | null | undefined } };
+export type LoginMutation = { __typename?: 'Mutation', login: { __typename?: 'UserResponse', errors?: Array<{ __typename?: 'FieldError', field: string, message: string }> | null | undefined, user?: { __typename?: 'User', id: number, username: string } | null | undefined } };
 
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type MeQuery = { __typename?: 'Query', me: { __typename?: 'User', id: number, username: string } };
 
-
+export const RegularUserFragmentDoc = gql`
+    fragment RegularUser on User {
+  id
+  username
+}
+    `;
 export const RegisterDocument = gql`
     mutation Register($username: String!, $password: String!) {
   register(username: $username, password: $password) {
-    username
-    id
+    ...RegularUser
   }
 }
-    `;
+    ${RegularUserFragmentDoc}`;
 export type RegisterMutationFn = Apollo.MutationFunction<RegisterMutation, RegisterMutationVariables>;
 
 /**
@@ -163,12 +169,11 @@ export const LoginDocument = gql`
       message
     }
     user {
-      username
-      id
+      ...RegularUser
     }
   }
 }
-    `;
+    ${RegularUserFragmentDoc}`;
 export type LoginMutationFn = Apollo.MutationFunction<LoginMutation, LoginMutationVariables>;
 
 /**
@@ -198,11 +203,10 @@ export type LoginMutationOptions = Apollo.BaseMutationOptions<LoginMutation, Log
 export const MeDocument = gql`
     query Me {
   me {
-    id
-    username
+    ...RegularUser
   }
 }
-    `;
+    ${RegularUserFragmentDoc}`;
 
 /**
  * __useMeQuery__

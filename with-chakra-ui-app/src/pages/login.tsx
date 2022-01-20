@@ -10,7 +10,6 @@ interface LoginProps {}
 const Login: React.FC<LoginProps> = () => {
   const [loginMutation] = useLoginMutation();
   const { setFormError } = useFormContext();
-  const formInputRequired = "This form is required";
   const {
     register,
     handleSubmit,
