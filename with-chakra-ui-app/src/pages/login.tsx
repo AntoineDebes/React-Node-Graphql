@@ -4,6 +4,7 @@ import UseFormField from "../components/atoms/UseFormField";
 import { useFormContext } from "../context/useFormContext";
 import { useLoginMutation } from "../generated/graphql";
 import { loginFormModel } from "../types/loginFormModel";
+import validation from "../validation";
 
 interface LoginProps {}
 
@@ -36,8 +37,12 @@ const Login: React.FC<LoginProps> = () => {
   return (
     <form onSubmit={handleSubmit(submit)}>
       <UseFormField {...UseFormFieldProps} title="Username" />
-      <UseFormField {...UseFormFieldProps} title="Email" />
-      <UseFormField {...UseFormFieldProps} title="Password" />
+      <UseFormField
+        {...UseFormFieldProps}
+        title="Email"
+        pattern={validation.email}
+      />
+      <UseFormField {...UseFormFieldProps} title="Password" type="password" />
       <button type="submit">Login</button>
     </form>
   );

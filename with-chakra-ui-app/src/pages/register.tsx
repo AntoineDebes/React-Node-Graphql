@@ -5,46 +5,43 @@ import Wrapper from "../components/Wrapper";
 import InputField from "../components/InputField";
 import { useRegisterMutation } from "../generated/graphql";
 import { useRouter } from "next/router";
+import { useForm, SubmitHandler } from "react-hook-form";
+import UseFormField from "../components/atoms/UseFormField";
+import validation from "../validation";
 
 interface RegisterProps {}
 
 const Register: React.FC<RegisterProps> = () => {
-  const [register] = useRegisterMutation();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
+  const useFormFieldProps = { register, errors };
+  const [registerMutation] = useRegisterMutation();
   const route = useRouter();
+  const submit: SubmitHandler<any> = async (values: any) => {
+    console.log("values", values);
+    const response = await registerMutation({
+      variables: { options: values },
+    });
+    console.log("response", response);
+
+    if (response.data?.register.id) return route.push("/");
+  };
+
   return (
     <Wrapper variant="small">
-      <Formik
-        initialValues={{ username: "", password: "", email: "" }}
-        onSubmit={async (values) => {
-          console.log("values", values);
-          const response = await register({ variables: { options: values } });
-          console.log("response", response);
-
-          if (response.data?.register.id) return route.push("/");
-        }}
-      >
-        {({ isSubmitting }) => (
-          <Form>
-            <InputField
-              name="username"
-              placeholder="username"
-              label="Username"
-            />
-            <InputField name="email" placeholder="email" label="Email" />
-            <Box mt={4}>
-              <InputField
-                name="password"
-                placeholder="password"
-                label="Password"
-                type="password"
-              />
-            </Box>
-            <Button mt={4} type="submit" isLoading={isSubmitting}>
-              Register
-            </Button>
-          </Form>
-        )}
-      </Formik>
+      <form onSubmit={handleSubmit(submit)}>
+        <UseFormField {...useFormFieldProps} title="Username" />
+        <UseFormField
+          {...useFormFieldProps}
+          title="Email"
+          pattern={validation.email}
+        />
+        <UseFormField {...useFormFieldProps} title="Password" type="password" />
+        <button type="submit">Register</button>
+      </form>
     </Wrapper>
   );
 };
