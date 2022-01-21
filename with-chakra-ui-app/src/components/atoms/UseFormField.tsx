@@ -1,8 +1,9 @@
 import React from "react";
 import { UseFormRegisterReturn } from "react-hook-form";
+import validation from "../validation";
 
 interface UseFormFieldProps {
-  register: any;
+  register: (titleToLowerCase: any, required: any) => UseFormRegisterReturn;
   errors: any;
   title: string;
 }
@@ -13,16 +14,17 @@ const UseFormField: React.FC<UseFormFieldProps> = ({
   title,
 }) => {
   const formInputRequired = "This field is required";
-  const titleToLowerCase = title.replaceAll(" ", "").toLowerCase();
+  const titleToLowerCase: string = title.replaceAll(" ", "").toLowerCase();
 
   return (
     <div>
-      <label htmlFor="username">{title}</label>
+      <label htmlFor={titleToLowerCase}>{title}</label>
       <input
-        type="text"
-        id="username"
+        type={titleToLowerCase === "password" ? "password" : "text"}
+        id={titleToLowerCase}
         {...register(titleToLowerCase, {
           required: formInputRequired,
+          // pattern: validation[titleToLowerCase],
         })}
       />
       {errors[titleToLowerCase] && (

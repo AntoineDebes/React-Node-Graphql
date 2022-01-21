@@ -47,8 +47,7 @@ export type MutationLoginArgs = {
 
 
 export type MutationRegisterArgs = {
-  password: Scalars['String'];
-  username: Scalars['String'];
+  options: UsernamePasswordInput;
 };
 
 
@@ -82,6 +81,7 @@ export type User = {
   __typename?: 'User';
   accessToken: Scalars['String'];
   createdAt: Scalars['String'];
+  email: Scalars['String'];
   id: Scalars['Int'];
   refreshToken: Scalars['String'];
   updatedAt: Scalars['String'];
@@ -95,6 +95,7 @@ export type UserResponse = {
 };
 
 export type UsernamePasswordInput = {
+  email: Scalars['String'];
   password: Scalars['String'];
   username: Scalars['String'];
 };
@@ -102,8 +103,7 @@ export type UsernamePasswordInput = {
 export type RegularUserFragment = { __typename?: 'User', id: number, username: string };
 
 export type RegisterMutationVariables = Exact<{
-  username: Scalars['String'];
-  password: Scalars['String'];
+  options: UsernamePasswordInput;
 }>;
 
 
@@ -128,8 +128,8 @@ export const RegularUserFragmentDoc = gql`
 }
     `;
 export const RegisterDocument = gql`
-    mutation Register($username: String!, $password: String!) {
-  register(username: $username, password: $password) {
+    mutation Register($options: UsernamePasswordInput!) {
+  register(options: $options) {
     ...RegularUser
   }
 }
@@ -149,8 +149,7 @@ export type RegisterMutationFn = Apollo.MutationFunction<RegisterMutation, Regis
  * @example
  * const [registerMutation, { data, loading, error }] = useRegisterMutation({
  *   variables: {
- *      username: // value for 'username'
- *      password: // value for 'password'
+ *      options: // value for 'options'
  *   },
  * });
  */

@@ -36,6 +36,7 @@ const Login: React.FC<LoginProps> = () => {
   return (
     <form onSubmit={handleSubmit(submit)}>
       <UseFormField {...UseFormFieldProps} title="Username" />
+      <UseFormField {...UseFormFieldProps} title="Email" />
       <UseFormField {...UseFormFieldProps} title="Password" />
       <button type="submit">Login</button>
     </form>

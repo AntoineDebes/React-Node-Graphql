@@ -1,4 +1,5 @@
-import { createTokens } from "../middleware/jwtCreate";
+import emailValidation from "./../utils/emailValidation";
+import { jwtCreate } from "../middleware/jwtCreate";
 import { User } from "../entities/User";
 import { MyContext } from "../Types";
 import {
@@ -34,6 +35,15 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  // @Mutation(() => Boolean)
+  // async forgotPassword(
+  //   @Arg("email") email: string
+  //   // @Ctx() { em, req }: MyContext
+  // ) {
+  //   // const user = await em.findOne(User,{email})
+  //   return true;
+  // }
+
   @Query(() => User)
   async me(@Ctx() { req, res, em }: MyContext) {
     const user = await jwtValidation({ req, res, em });
@@ -50,39 +60,29 @@ export class UserResolver {
 
   @Mutation(() => User)
   async register(
-    @Arg("username") username: string,
-    @Arg("password") password: string,
+    @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, res }: MyContext
   ): Promise<User | Boolean> {
-    if (!!(username && password !== "")) {
+    const { username, email, password } = options;
+    if (!!((username || email) && password)) {
+      const validEmail = await emailValidation(email);
+
       const hashedPassword = await argon2.hash(password);
 
       const user = em.create(User, {
         username,
         password: hashedPassword,
+        email: validEmail,
         count: 0,
       });
-      await em.persistAndFlush(user);
-      const fetchedUser: any = await em.findOne(User, { username });
-      const { accessToken, refreshToken } = createTokens(fetchedUser);
 
-      fetchedUser.refreshToken = refreshToken;
-      fetchedUser.accessToken = accessToken;
+      await em.persistAndFlush(user);
+      const fetchedUser: any = await em.findOne(User, { email: validEmail });
+      await jwtCreate({
+        user: fetchedUser,
+        res,
+      });
       await em.persistAndFlush(fetchedUser);
-      res.cookie("access-token", accessToken, {
-        signed: false,
-        maxAge: 99999,
-        httpOnly: false,
-        sameSite: "none",
-        secure: true,
-      });
-      res.cookie("refresh-token", refreshToken, {
-        signed: false,
-        maxAge: 99999,
-        httpOnly: false,
-        secure: true,
-        sameSite: "none",
-      });
       return fetchedUser;
     }
     return false;
@@ -91,12 +91,22 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async login(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, res }: MyContext
   ): Promise<UserResponse> {
-    console.log("passed");
-    const { username, password } = options;
-    if (!!(username && password !== "")) {
-      const user = await em.findOne(User, { username: username.toLowerCase() });
+    const { username, email, password } = options;
+    if (!!((username || email) && password)) {
+      let user;
+      if (email) {
+        user = await em.findOne(User, {
+          email: email,
+        });
+      } else if (username) {
+        user = await em.findOne(User, {
+          username: username.toLowerCase(),
+        });
+      }
+      console.log("user: ", user);
+
       if (!user) {
         return {
           errors: [
@@ -110,7 +120,7 @@ export class UserResolver {
           errors: [{ field: "password", message: "incorrect password" }],
         };
       }
-
+      await jwtCreate({ user, res });
       return {
         user,
       };

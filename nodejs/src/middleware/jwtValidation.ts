@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { User } from "../entities/User";
-import { createTokens } from "./jwtCreate";
+import { jwtCreate } from "./jwtCreate";
 
 export const jwtValidation = async ({ req, res, em }: any) => {
   const refreshToken = req.cookies["refresh-token"];
@@ -30,12 +30,9 @@ export const jwtValidation = async ({ req, res, em }: any) => {
 
   if (!user || user.count !== refreshTokenData.count) return null;
   user.count += 1;
-  const tokens = createTokens(user);
-  user.accessToken = tokens.accessToken;
-  user.refreshToken = tokens.refreshToken;
+  await jwtCreate({ user, res });
 
   await em.persistAndFlush(user);
-  res.cookie("refresh-token", tokens.refreshToken);
-  res.cookie("access-token", tokens.accessToken);
+
   return user;
 };

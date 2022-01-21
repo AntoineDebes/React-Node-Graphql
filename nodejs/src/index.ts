@@ -10,10 +10,8 @@ import { buildSchema } from "type-graphql";
 import { UserResolver } from "./resolvers/user";
 import { __prod__ } from "./constants";
 import cookieParser from "cookie-parser";
-import { sendEmail } from "./utils/sendEmail";
 
 const main = async () => {
-  sendEmail("antoinedebes@gmail.com", "Hello Antoine");
   const orm = await MikroORM.init(mikroConfig);
   await orm.getMigrator().up();
 
