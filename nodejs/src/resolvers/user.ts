@@ -35,14 +35,14 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-  // @Mutation(() => Boolean)
-  // async forgotPassword(
-  //   @Arg("email") email: string
-  //   // @Ctx() { em, req }: MyContext
-  // ) {
-  //   // const user = await em.findOne(User,{email})
-  //   return true;
-  // }
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg("email") email: string
+    // @Ctx() { em, req }: MyContext
+  ) {
+    // const user = await em.findOne(User,{email})
+    return true;
+  }
 
   @Query(() => User)
   async me(@Ctx() { req, res, em }: MyContext) {
@@ -62,22 +62,26 @@ export class UserResolver {
   async register(
     @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, res }: MyContext
-  ): Promise<User | Boolean> {
+  ): Promise<User | Boolean | {}> {
     const { username, email, password } = options;
-    if (!!((username || email) && password)) {
-      const validEmail = await emailValidation(email);
+    if (!!(username && email && password)) {
+      email.toLowerCase();
+      username.toLowerCase();
+
+      const emailValidationResponse = await emailValidation(email);
+      if (!!emailValidationResponse) return emailValidationResponse;
 
       const hashedPassword = await argon2.hash(password);
 
       const user = em.create(User, {
         username,
         password: hashedPassword,
-        email: validEmail,
+        email,
         count: 0,
       });
 
       await em.persistAndFlush(user);
-      const fetchedUser: any = await em.findOne(User, { email: validEmail });
+      const fetchedUser: any = await em.findOne(User, { email });
       await jwtCreate({
         user: fetchedUser,
         res,
